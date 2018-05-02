@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : singleObjectMovingInASquare.xml
+    Created on : November 7, 2007, 3:13 PM
+    Author     : Oliver
+    Description:
+        Purpose of the document follows.
+-->
+
+<mob 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="MobSchema.xsd">
+    <mobProfileName>Single Object Moving in a Square Area</mobProfileName>
+    
+    <fieldDimensions>
+        <length>100</length>
+        <width>100</width>
+    </fieldDimensions>
+    
+    <radiance>5</radiance>
+    
+    <timeUnit>minute</timeUnit>    
+    
+    <periodicity>0</periodicity>
+    
+    <path>    
+        <locationInTime><timeStamp>0</timeStamp><xCoord>20</xCoord><yCoord>20</yCoord></locationInTime>
+        <locationInTime><timeStamp>30</timeStamp><xCoord>80</xCoord><yCoord>20</yCoord></locationInTime> 
+        <locationInTime><timeStamp>60</timeStamp><xCoord>80</xCoord><yCoord>80</yCoord></locationInTime>
+        <locationInTime><timeStamp>90</timeStamp><xCoord>20</xCoord><yCoord>80</yCoord></locationInTime>
+        <locationInTime><timeStamp>120</timeStamp><xCoord>20</xCoord><yCoord>20</yCoord></locationInTime>
+    </path>
+</mob>

@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Created-By: Apache Jakarta Maven
+Built-By: dahm
+Package: org.apache.bcel
+Build-Jdk: 1.4.1_01
+
+Name: org.apache.bcel
+Specification-Title: bcel
+Specification-Version: 5.1
+Specification-Vendor: Apache Software Foundation
+Implementation-Title: org.apache.bcel
+Implementation-Version: 5.1
+Implementation-Vendor: Apache Software Foundation
+
