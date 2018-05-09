@@ -29,7 +29,7 @@ public class ColorProfileDharmawan extends ColorProfile{
                                 /* tag     , inner(body)  , outer(contour)*/
         register(new ColorBundle(DATA      , Color.ORANGE , null        ));
         register(new ColorBundle(TRANSMIT  , null         ,Color.GREEN   ));
-        register(new ColorBundle(RECEIVE   , Color.GREEN  , null        ));
+        register(new ColorBundle(RECEIVE   , Color.RED  , null        ));
         register(new ColorBundle(SINK      , Color.YELLOW , Color.YELLOW));
         register(new ColorBundle(SOURCE    , Color.YELLOW , Color.YELLOW));
         register(new ColorBundle(RESPONDENT, Color.MAGENTA, Color.CYAN  ));     

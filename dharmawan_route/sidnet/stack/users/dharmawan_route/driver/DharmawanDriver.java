@@ -55,6 +55,7 @@ import sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage;
 
 import sidnet.stack.users.dharmawan_route.colorprofile.ColorProfileDharmawan;
 import sidnet.stack.users.dharmawan_route.routing.RoutingProtocol;
+//import sidnet.stack.users.dharmawan_route.routing.RoutingProtocol;
 
 /**
  *
@@ -102,7 +103,7 @@ public class DharmawanDriver {
         float density = nodes / (float)(fieldLength/1000.0 * fieldLength/1000.0);
         System.out.println("nodes   = "+nodes);
         System.out.println("size    = "+fieldLength+" x "+fieldLength);
-        System.out.println("time    = "+time+" seconds"); 
+        System.out.println("time    = "+time+" seconds");
         System.out.print("Creating simulation nodes ... ");
         
         /** Create the simulation */
@@ -116,7 +117,7 @@ public class DharmawanDriver {
         JistAPI.endAt(time * Constants.SECOND); /* so it will self-terminate after "time" seconds. Not the way we specify the unit of time */
         
         System.out.println("Driver initialization complete!");     
-    } 
+    }
     
   
   /**
@@ -128,7 +129,7 @@ public class DharmawanDriver {
    */
   public static Field createSim(int nodes, int length)
   {
-    System.out.println("[Dharmawan Routing] : createSim()");  
+    System.out.println("[Dharmawan Routing] : createSim()");
       
     /** Launch the SIDnet main graphical interface and set-up the title */       
     SimGUI simGUI = new SimGUI();
@@ -307,11 +308,9 @@ public class DharmawanDriver {
                 ShortestGeoPathRouting shortestGeographicalPathRouting 
                 	= new ShortestGeoPathRouting(node);
                 
-                RoutingProtocol routingProtocol
-                	= new RoutingProtocol(node);
+                RoutingProtocol routingProtocol = new RoutingProtocol(node);
 
-                if(routingProtocol.topologyGUI == null)
-                    routingProtocol.topologyGUI = topologyGUI;
+                if(routingProtocol.topologyGUI == null) routingProtocol.topologyGUI = topologyGUI;
                 
                 node.setIP(net.getAddress());
 
@@ -328,7 +327,7 @@ public class DharmawanDriver {
                 /* *** Hooking up the ISO layers *** */
                 /* APP <- Routing hookup */
                 shortestGeographicalPathRouting.setAppInterface(app.getAppProxy());
-                routingProtocol.setAppInterface(app.getAppProxy());
+                //routingProtocol.setAppInterface(app.getAppProxy());
                 
                 /* APP -> NET hookup */
                 app.setNetEntity(net.getProxy());
@@ -336,9 +335,9 @@ public class DharmawanDriver {
                 /* NET<->Routing hookup */
                 heartbeatProtocol.setNetEntity(net.getProxy());
                 shortestGeographicalPathRouting.setNetEntity(net.getProxy());
-                routingProtocol.setNetEntity(net.getProxy());
+                //routingProtocol.setNetEntity(net.getProxy());
                 net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, shortestGeographicalPathRouting.getProxy());
-                net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, routingProtocol.getProxy());
+                //net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, routingProtocol.getProxy());
                 net.setProtocolHandler(Constants.NET_PROTOCOL_HEARTBEAT, heartbeatProtocol.getProxy());
                 //net.setMacEntity(mac);
 

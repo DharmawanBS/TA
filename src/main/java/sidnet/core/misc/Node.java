@@ -79,9 +79,12 @@ public class Node implements NodeAPI, NodeHardwareInterface{
    
     private boolean faulty = false;
     
+    public int current_CH;
+    
     /** Creates a new instance of Node */
     public Node(int id, EnergyManagement energyManagement, PanelContext hostingPanelContext, LocationContext fieldContext, ColorProfile colorCode, SimManager simControl){
         this.id = id;
+        this.current_CH = id;
         this.energyManagement = energyManagement;
 
         this.fieldContext = fieldContext;

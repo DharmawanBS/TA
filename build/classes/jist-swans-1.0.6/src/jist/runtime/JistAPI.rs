@@ -1,0 +1,9 @@
+jist.runtime.JistAPI$CustomRewriter
+jist.runtime.JistAPI
+jist.runtime.JistAPI$Timeless
+jist.runtime.JistAPI$Logger
+jist.runtime.JistAPI$Continuation
+jist.runtime.JistAPI$Entity
+jist.runtime.JistAPI$Continuable
+jist.runtime.JistAPI$DoNotRewrite
+jist.runtime.JistAPI$Proxiable

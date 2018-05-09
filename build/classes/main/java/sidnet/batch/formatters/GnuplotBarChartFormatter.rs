@@ -1,0 +1,1 @@
+sidnet.batch.formatters.GnuplotBarChartFormatter

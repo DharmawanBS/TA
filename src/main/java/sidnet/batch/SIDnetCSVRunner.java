@@ -13,8 +13,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -34,7 +32,7 @@ import sidnet.core.misc.FileUtils;
  *      Added support for "-repeat"
  *      Enforced syntax
  * version 1.2 (03-20-2009) Oliver
- *      Disabling rewriter caching in linux since it can create some file system problems
+ *      Disabling rewrite r caching in linux since it can create some file system problems
  * version 1.2.1 (03-20-2009) Oliver
  *      Correcting resource over-usage at the last experiments (infinite loop)
  * version 1.3 (10-07-2009) Oliver

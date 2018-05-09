@@ -20,12 +20,12 @@ public class MessageDataValue implements Message {
     public final int groupId;
     public final long sequenceNumber;
     public int producerNodeId;
-
+    
     public String tipeSensor;
 
     public int fromRegion;
-
-    public int priorityLevel;
+    
+    public int queryID;
     
     public MessageDataValue(double dataValue) {
         this.dataValue = dataValue;
@@ -33,8 +33,7 @@ public class MessageDataValue implements Message {
         sequenceNumber = -1;
     }
     
-    public MessageDataValue(double dataValue, int groupId,
-    					  long sequenceNumber, int producerNodeId) {
+    public MessageDataValue(double dataValue, int groupId, long sequenceNumber, int producerNodeId) {
         this.dataValue = dataValue;
         this.groupId   = groupId;
         this.sequenceNumber = sequenceNumber;
@@ -42,8 +41,7 @@ public class MessageDataValue implements Message {
     }
     
     /** {@inheritDoc} */
-    public int getSize() 
-    { 
+    public int getSize() { 
       int size = 0;
       size += 4; // double dataValue;
       size += 2; // double sequenceNumber;
@@ -53,8 +51,7 @@ public class MessageDataValue implements Message {
       return size;
     }
     /** {@inheritDoc} */
-    public void getBytes(byte[] b, int offset)
-   {
+    public void getBytes(byte[] b, int offset) {
       throw new RuntimeException("not implemented");
     }
   } // class: MessageP2P

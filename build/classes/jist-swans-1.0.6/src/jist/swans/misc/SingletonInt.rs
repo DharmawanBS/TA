@@ -1,0 +1,1 @@
+jist.swans.misc.SingletonInt
