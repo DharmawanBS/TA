@@ -1,0 +1,7 @@
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame$2
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame$3
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame$1
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame$6
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame$4
+sidnet.models.senseable.phenomena.PhenomenaConfigurationFrame$5

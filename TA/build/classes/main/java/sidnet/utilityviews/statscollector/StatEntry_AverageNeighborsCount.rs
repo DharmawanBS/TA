@@ -1,0 +1,1 @@
+sidnet.utilityviews.statscollector.StatEntry_AverageNeighborsCount

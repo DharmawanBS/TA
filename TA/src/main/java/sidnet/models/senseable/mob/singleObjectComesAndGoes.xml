@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : singleObjectComesAndGoes.xml
+    Created on : November 7, 2007, 3:13 PM
+    Author     : Oliver
+    Description:
+        Purpose of the document follows.
+-->
+
+<mob 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="MobSchema.xsd">
+    <mobProfileName>Single Object Comes and Goes</mobProfileName>
+    
+    <fieldDimensions>
+        <length>100</length>
+        <width>100</width>
+    </fieldDimensions>
+    
+    <radiance>5</radiance>
+    
+    <timeUnit>minute</timeUnit>    
+    
+    <periodicity>0</periodicity>
+    
+    <path>    
+        <locationInTime><timeStamp>0</timeStamp><xCoord>-10</xCoord><yCoord>80</yCoord></locationInTime>
+        <locationInTime><timeStamp>5</timeStamp><xCoord>50</xCoord><yCoord>50</yCoord></locationInTime> 
+        <locationInTime><timeStamp>6</timeStamp><xCoord>70</xCoord><yCoord>70</yCoord></locationInTime>
+        <locationInTime><timeStamp>9</timeStamp><xCoord>65</xCoord><yCoord>120</yCoord></locationInTime>
+    </path>
+</mob>

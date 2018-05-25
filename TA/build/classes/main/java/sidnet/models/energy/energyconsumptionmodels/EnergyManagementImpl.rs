@@ -1,0 +1,2 @@
+sidnet.models.energy.energyconsumptionmodels.EnergyManagementImpl$StubBattery
+sidnet.models.energy.energyconsumptionmodels.EnergyManagementImpl

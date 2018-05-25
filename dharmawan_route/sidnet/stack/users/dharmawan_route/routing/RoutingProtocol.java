@@ -23,13 +23,16 @@ import jist.swans.net.NetAddress;
 import jist.swans.net.NetInterface;
 import jist.swans.net.NetMessage;
 import jist.swans.route.RouteInterface;
+import sidnet.colorprofiles.ColorProfileGeneric;
 import sidnet.core.gui.TopologyGUI;
 import sidnet.core.misc.NCS_Location2D;
 import sidnet.stack.users.dharmawan_route.colorprofile.ColorProfileDharmawan;
 import sidnet.core.misc.Node;
 import sidnet.core.misc.NodeEntry;
 import sidnet.core.misc.Reason;
+import sidnet.stack.users.dharmawan_route.app.DropperNotifyAppLayer;
 import sidnet.stack.users.dharmawan_route.app.MessageDataValue;
+import sidnet.stack.users.dharmawan_route.app.MessageQuery;
 
 /**
  *
@@ -71,6 +74,14 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
     private Map<String, poolReceivedItem> rcvPool = new HashMap<String, poolReceivedItem>();
     private boolean rcvPoolIsLock = false; //jika rcvPool dikunci, tidak boleh diakses
     private ArrayList<poolReceivedItem> lstItemPool = new ArrayList<poolReceivedItem>();
+    
+    private static final int LIMIT_PACKET_ID_SIZE = 200;
+    private static final long INTERVAL_TIMING_SEND = 5 * Constants.SECOND;
+    private static final int MAXIMUM_RETRY_SEND_MESSAGE = 0;
+    private static final long INTERVAL_WAITING_BEFORE_RETRY = 10 * Constants.SECOND;
+    
+    //list dari node ini proses query apa aj mana saja
+    private ArrayList<Integer> queryProcessed = new ArrayList<Integer>();
     
     public RoutingProtocol (Node myNode) {
         this.myNode = myNode;
@@ -199,12 +210,12 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
             //jika cluster headnya diri sendiri maka masukan ke pool agar diteruskan
             //ke sink dengan timingSend()
             if (myClusterHead.hashCode() == myNode.getIP().hashCode()) {
-                //System.out.println("Node " + myNode.getID() + " memasukan data value sendiri ke pool");
+                System.out.println("Node " + myNode.getID() + " memasukan data value sendiri ke pool");
                 poolHandleMessageDataValue(msg);
             }
             //jika tidak maka kirim ke cluster head
             else {
-                //System.out.println("Node " + myNode.getID() + " mengirim data ke clusterhead " + myClusterHead);
+                System.out.println("Node " + myNode.getID() + " mengirim data ke clusterhead " + myClusterHead);
                 ProtocolMessageWrapper pmw = new ProtocolMessageWrapper(msg);
                 String unikID = String.valueOf(myNode.getID()) + String.valueOf(JistAPI.getTime());
                 pmw.setS_seq(Long.valueOf(unikID));
@@ -272,12 +283,112 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
 
     @Override
     public void receive(Message msg, NetAddress src, MacAddress lastHop, byte macId, NetAddress dst, byte priority, byte ttl) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        //Reject pesan jika energy yang tersisa kurang dari 2%
+        if (myNode.getEnergyManagement()
+        		  .getBattery()
+        		  .getPercentageEnergyLevel()< 2)
+            return;
+
+        //Reject semua pesan yang diterima jika tipe pesan tidak dikenali
+        if (!(msg instanceof ProtocolMessageWrapper))
+            return;
+
+        //node fail system
+        if (this.netQueueFULL)
+            return;
+
+        //set visual warna node
+        myNode.getNodeGUI().colorCode.mark(colorProfileGeneric,ColorProfileDharmawan.RECEIVE, 2);
+
+        //Extract pesan ketipe wrapper
+        ProtocolMessageWrapper rcvMsg = (ProtocolMessageWrapper)msg;
+
+        //Operasi sesuai dengan tipe pesan
+        if (rcvMsg.getPayload() instanceof MessageNodeDiscover) {
+            //tipe pesan discovery, berikan ke fungsi handle MessageNodeDiscover
+            //System.out.println("Node " + myNode.getID() + " got node info from Node " + ((MessageNodeDiscover)rcvMsg.getPayload()).nodeID);
+            handleMessageNodeDiscover((MessageNodeDiscover)rcvMsg.getPayload());
+        } else if (rcvMsg.getPayload() instanceof MessageQuery) {
+            //tipe pesan query, cek apakah pesan query sudah pernah diterima sebelumnya
+            //jika belum berikan ke fungsi handleMessageQuery
+            //jika sudah abaikan
+            if (!receivedDataId.contains(String.valueOf(rcvMsg.getS_seq()))) {
+                receivedDataId.add(String.valueOf(rcvMsg.getS_seq()));
+                memoryControllerPacketID();
+                handleMessageQuery(rcvMsg);
+            }
+        } else if (rcvMsg.getPayload() instanceof MessageDataValue) {
+            //jika pesan aggregate duplicate, abaikan
+            if (this.receivedDataId.contains(String.valueOf(rcvMsg.getS_seq())))
+                return;
+            receivedDataId.add(String.valueOf(rcvMsg.getS_seq()));
+            memoryControllerPacketID();
+
+            //tipe pesan data value yang sudah diaggregate
+            //bagian ini biasanya dipanggil jika pesan ini diterima pada sink node
+            //lempar ke layer app
+            //sendToAppLayer(rcvMsg.getPayload(), src);
+
+            sendToAppLayer((MessageDataValue)rcvMsg.getPayload(), null);
+        }
     }
 
     @Override
     public void dropNotify(Message msg, MacAddress nextHopMac, Reason reason) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (reason == Reason.PACKET_SIZE_TOO_LARGE) {
+    		System.out.println("NODE:" + myNode.getID() +" WARNING: Packet size too large - unable to transmit");
+    		throw new RuntimeException("Packet size too large - unable to transmit");
+    	}
+        if (reason == Reason.NET_QUEUE_FULL) {
+            if (!this.netQueueFULL) {
+                this.netQueueFULL = true;
+                System.out.println("ERROR: Net Queue full node" + myNode.getID() + " TIME (SEC): " + (JistAPI.getTime() / Constants.SECOND));
+                myNode.getNodeGUI().colorCode.mark(new ColorProfileGeneric(), ColorProfileGeneric.DEAD, ColorProfileGeneric.FOREVER);
+                //throw new RuntimeException("Net Queue Full");
+            }
+        }
+        if (reason == Reason.UNDELIVERABLE || reason == Reason.MAC_BUSY) {
+            ProtocolMessageWrapper xMsg = (ProtocolMessageWrapper)((NetMessage.Ip)msg).getPayload();
+            System.out.println("NODE:" + myNode.getID() + " WARNING: Cannot relay packet " + xMsg.getS_seq() + " to the destination node " + nextHopMac);
+            
+            //cek apakah batas retry masih bisa atau tidak
+            if (isThisRetryAgain(xMsg.getS_seq())) {
+
+                increaseThisRetry(xMsg.getS_seq());
+                System.out.println("NODE:" + myNode.getID() + " Retrying(" + dataRetry.get(xMsg.getS_seq()) + ") PID:" + xMsg.getS_seq() + " send to node " + nextHopMac);
+
+                //sleep before retry
+                JistAPI.sleepBlock(this.INTERVAL_WAITING_BEFORE_RETRY);
+
+                NetMessage.Ip nmip = (NetMessage.Ip) msg;
+
+                if (xMsg.getPayload() instanceof MessageDataValue) {
+                    //beritahu app layer agar menambah window aggregation
+                    DropperNotifyAppLayer dnal = new DropperNotifyAppLayer(false, true);
+                    sendToAppLayer(dnal, myNode.getIP());
+                }
+                NetAddress retryTo = convertMacToIP(nextHopMac);
+                if (retryTo != null)
+                    sendToLinkLayer(nmip, retryTo);
+                else {
+                    
+                }
+            } else {
+                System.out.println("NODE:" + myNode.getID() + " Drop packet " + xMsg.getS_seq() + " after retry(" + dataRetry.get(xMsg.getS_seq()) + ") to node " + nextHopMac);
+                deleteThisRetry(xMsg.getS_seq());
+            }
+
+        }
+
+        if (reason == Reason.PACKET_DELIVERED) {
+            ProtocolMessageWrapper xMsg = (ProtocolMessageWrapper)((NetMessage.Ip)msg).getPayload();
+            if (xMsg.getPayload() instanceof MessageDataValue) {
+                //beritahu app layer agar menngurangi window aggregation
+                DropperNotifyAppLayer dnal = new DropperNotifyAppLayer(true, false);
+                sendToAppLayer(dnal, myNode.getIP());
+            }
+            deleteThisRetry(xMsg.getS_seq());
+        }
     }
 
     @Override
@@ -292,6 +403,10 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         //awalnya node akan mengganggap dirinya adalah cluster head, memiliki
         //banyak tetangga
         int maxDiscoveredNode = myNode.neighboursList.size();
+        double energyLeft = myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel();
+        
+        double poin = maxDiscoveredNode/200 + energyLeft/100;
+        
         NetAddress selectedClusterHead = myNode.getIP();
 
         //ambil list tetangga yang dibuat oleh heartbeat
@@ -299,7 +414,7 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         	= myNode.neighboursList.getAsLinkedList();
 
         //periksa setiap tetangga yang memproses queryID yang sama
-        //jika ada yang sama kumpulkan di LiistNetAddress
+        //jika ada yang sama kumpulkan di ListNetAddress
         for(NodeEntry nodeEntry: neighboursLinkedList) {
             if (listTetangga.containsKey(nodeEntry.ip))
                 if (listTetangga.get(nodeEntry.ip).queryProcessed.contains(queryID))
@@ -310,12 +425,16 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         //cari tetangga yang memiliki tetangga paling banyak
         if (!lstNetAddr.isEmpty())
             for (NetAddress na: lstNetAddr) {;
-                if (maxDiscoveredNode < listTetangga.get(na).totalDiscoveredNode) {
-                    maxDiscoveredNode = listTetangga.get(na).totalDiscoveredNode;
+                int tempDiscoveredNode = listTetangga.get(na).totalDiscoveredNode;
+                double tempEnergyLeft = listTetangga.get(na).energyLeft;
+                
+                if (poin < tempDiscoveredNode/200 + tempEnergyLeft/100) {
                     selectedClusterHead = na;
                 }
             }
 
+        System.out.println("Node => " +myNode.getID()+ "Cluster Head => " +selectedClusterHead.toString());
+        
         return selectedClusterHead;
     }
     
@@ -344,6 +463,18 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         topologyGUI.addLink(myNode.getNCS_Location2D(), nextHopLocation, 1, Color.BLACK, TopologyGUI.HeadType.LEAD_ARROW);
 
         return nextHopAddress;
+    }
+    
+    public void sendToAppLayer(Message msg, NetAddress src)
+    {
+    	// ignore if not enough energy
+        if (myNode.getEnergyManagement()
+        		  .getBattery()
+        		  .getPercentageEnergyLevel()< 2)
+            return;
+
+        appInterface.receive(msg, src, null, (byte)-1,
+        					 NetAddress.LOCAL, (byte)-1, (byte)-1);
     }
     
     public void sendToLinkLayer(NetMessage.Ip ipMsg, NetAddress nextHopDestIP)
@@ -408,5 +539,85 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         NodeEntryDiscovery ned = new NodeEntryDiscovery(msg.nodeID, msg.ipAddress, msg.totalDiscoveredNode, msg.energyLeft);
         ned.addQueryProcessed(msg.queryProcessed);
         listTetangga.put(msg.ipAddress, ned);
+    }
+    
+    private void memoryControllerPacketID() {
+        if (this.receivedDataId.size() >= LIMIT_PACKET_ID_SIZE) {
+            this.receivedDataId.remove(0);
+        }
+    }
+    
+    private void handleMessageQuery(ProtocolMessageWrapper msg) {
+        /*
+         * Ketika mendapatkan query message, node memeriksa apakah dia masuk
+         * didalam region tersebut, jika iya maka node akan broadcast
+         * ke tetangga bahwa ia masuk dalam region baru
+         */
+
+        MessageQuery query = (MessageQuery)msg.getPayload();
+
+        if (query.getQuery().getSinkIP().hashCode() != myNode.getIP().hashCode())
+            if (query.getQuery().getRegion().isInside(myNode.getNCS_Location2D())) {
+                //System.out.println("Node " + myNode.getID() + " is inside region " + String.valueOf(query.getQuery().getRegion().getID()));
+
+                //start timing send
+                ((RouteInterface.DharmawanRoute)self).timingSend(this.INTERVAL_TIMING_SEND);
+
+                this.queryProcessed.add(query.getQuery().getID());
+                destinationSink ds = new destinationSink(query.getQuery().getSinkIP(), query.getQuery().getSinkNCSLocation2D(), query.getQuery().getRegion().getID());
+                this.detailQueryProcessed.put(query.getQuery().getID(),ds);
+
+                MessageNodeDiscover mnd = new MessageNodeDiscover(myNode.getID(), myNode.getIP(), myNode.neighboursList.size(), myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel());                
+                mnd.addQueryProcessed(this.queryProcessed);
+
+                ProtocolMessageWrapper pmw = new ProtocolMessageWrapper(mnd);
+                String unikID = String.valueOf(myNode.getID()) + String.valueOf(JistAPI.getTime());
+                pmw.setS_seq(Long.valueOf(unikID));
+                NetMessage.Ip nmip = new NetMessage.Ip(pmw, myNode.getIP(), NetAddress.ANY, Constants.NET_PROTOCOL_INDEX_1, Constants.NET_PRIORITY_NORMAL, (byte)100);
+                sendToLinkLayer(nmip, NetAddress.ANY);
+
+                //setelah di broadcast, query diteruskan ke app layer
+                sendToAppLayer(query, null);
+            }
+        
+        //give a breath
+        //JistAPI.sleepBlock(2 * Constants.SECOND);
+        
+        //sebarkan query
+        //System.out.println("Node " + myNode.getID() + " broadcasting query.");
+        NetMessage.Ip nmip = new NetMessage.Ip(msg, myNode.getIP(), NetAddress.ANY, Constants.NET_PROTOCOL_INDEX_1, Constants.NET_PRIORITY_NORMAL, (byte)100);
+        sendToLinkLayer(nmip, NetAddress.ANY);
+
+    }
+ 
+    private void increaseThisRetry(long s_Seq) {
+        int x = dataRetry.get(s_Seq) + 1;
+        dataRetry.put(s_Seq, x);
+    }
+
+    private void deleteThisRetry(long s_Seq) {
+        dataRetry.remove(s_Seq);
+    }
+    
+    private boolean isThisRetryAgain(long s_Seq) {
+        if (dataRetry.containsKey(s_Seq)) {
+            return dataRetry.get(s_Seq) < this.MAXIMUM_RETRY_SEND_MESSAGE;
+        } else {
+            System.out.println("Packet " + s_Seq + " not registered, dropped!");
+            return false;
+        }
+    }
+    
+    private NetAddress convertMacToIP(MacAddress macAddr) {
+        //ambil list tetangga yang dibuat oleh heartbeat
+        LinkedList<NodeEntry> neighboursLinkedList
+        	= myNode.neighboursList.getAsLinkedList();
+
+        for(NodeEntry nodeEntry: neighboursLinkedList) {
+            if (nodeEntry.mac.hashCode() == macAddr.hashCode())
+                return nodeEntry.ip;
+        }
+
+        return null;
     }
 }

@@ -10,6 +10,7 @@
 package sidnet.stack.std.routing.heartbeat;
 
 
+import java.util.LinkedList;
 import jist.swans.misc.Message;
 import jist.swans.net.NetAddress;
 import jist.swans.net.NetInterface;
@@ -25,7 +26,9 @@ import sidnet.core.gui.*;
 import jist.runtime.JistAPI;
 import jist.swans.app.AppInterface;
 import jist.swans.route.RouteInterface;
+import sidnet.core.misc.Location2D;
 import sidnet.core.misc.Node;
+import sidnet.core.misc.NodesList;
 import sidnet.core.misc.Reason;
 
 public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
@@ -113,8 +116,7 @@ public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
             if (myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel() < 20)
                 beatInterval = 5 * Constants.MINUTE;
             ((RouteInterface.HeartbeatProtocol)self).wakeAndBeat(beatInterval, true);
-        }
-         
+        }         
     }
      
     /* Receive a message from the network layer */

@@ -55,7 +55,6 @@ import sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage;
 
 import sidnet.stack.users.dharmawan_route.colorprofile.ColorProfileDharmawan;
 import sidnet.stack.users.dharmawan_route.routing.RoutingProtocol;
-//import sidnet.stack.users.dharmawan_route.routing.RoutingProtocol;
 
 /**
  *
@@ -305,8 +304,7 @@ public class DharmawanDriver {
                 							hostPanelContext,
                 							30 * Constants.MINUTE);
                 
-                ShortestGeoPathRouting shortestGeographicalPathRouting 
-                	= new ShortestGeoPathRouting(node);
+                //ShortestGeoPathRouting shortestGeographicalPathRouting = new ShortestGeoPathRouting(node);
                 
                 RoutingProtocol routingProtocol = new RoutingProtocol(node);
 
@@ -326,18 +324,18 @@ public class DharmawanDriver {
     
                 /* *** Hooking up the ISO layers *** */
                 /* APP <- Routing hookup */
-                shortestGeographicalPathRouting.setAppInterface(app.getAppProxy());
-                //routingProtocol.setAppInterface(app.getAppProxy());
+                //shortestGeographicalPathRouting.setAppInterface(app.getAppProxy());
+                routingProtocol.setAppInterface(app.getAppProxy());
                 
                 /* APP -> NET hookup */
                 app.setNetEntity(net.getProxy());
                 
                 /* NET<->Routing hookup */
                 heartbeatProtocol.setNetEntity(net.getProxy());
-                shortestGeographicalPathRouting.setNetEntity(net.getProxy());
-                //routingProtocol.setNetEntity(net.getProxy());
-                net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, shortestGeographicalPathRouting.getProxy());
-                //net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, routingProtocol.getProxy());
+                //shortestGeographicalPathRouting.setNetEntity(net.getProxy());
+                routingProtocol.setNetEntity(net.getProxy());
+                //net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, shortestGeographicalPathRouting.getProxy());
+                net.setProtocolHandler(Constants.NET_PROTOCOL_INDEX_1, routingProtocol.getProxy());
                 net.setProtocolHandler(Constants.NET_PROTOCOL_HEARTBEAT, heartbeatProtocol.getProxy());
                 //net.setMacEntity(mac);
 

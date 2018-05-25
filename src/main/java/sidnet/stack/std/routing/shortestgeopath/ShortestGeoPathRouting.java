@@ -94,7 +94,7 @@ public class ShortestGeoPathRouting implements RouteInterface {
         // Provide a basic visual feedback on the fact that 
         //this node has received a message */
         myNode.getNodeGUI().colorCode.mark(colorProfileGeneric,
-        								   ColorProfileGeneric.RECEIVE, 20);  
+        								   ColorProfileGeneric.RECEIVE, 20);
         
         // A message may come in a format that you define based
         // on your implementation needs
