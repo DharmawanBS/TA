@@ -45,8 +45,7 @@ import sidnet.models.senseable.phenomena.PhenomenaLayerInterface;
 import sidnet.stack.std.mac.ieee802_15_4.Mac802_15_4Impl;
 import sidnet.stack.std.mac.ieee802_15_4.Phy802_15_4Impl;
 import sidnet.stack.std.routing.heartbeat.HeartbeatProtocol;
-import sidnet.stack.std.routing.shortestgeopath.ShortestGeoPathRouting;
-import sidnet.stack.users.sample_p2p.app.AppSampleP2P;
+import sidnet.stack.users.dharmawan_route.app.AppLayer;
 import sidnet.utilityviews.energymap.EnergyMap;
 import sidnet.utilityviews.statscollector.StatEntry_GeneralPurposeContor;
 import sidnet.utilityviews.statscollector.StatEntry_Time;
@@ -55,6 +54,10 @@ import sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage;
 
 import sidnet.stack.users.dharmawan_route.colorprofile.ColorProfileDharmawan;
 import sidnet.stack.users.dharmawan_route.routing.RoutingProtocol;
+import sidnet.utilityviews.statscollector.StatEntry_PacketDeliveryLatency;
+import sidnet.utilityviews.statscollector.StatEntry_PacketReceivedContor;
+import sidnet.utilityviews.statscollector.StatEntry_PacketReceivedPercentage;
+import sidnet.utilityviews.statscollector.StatEntry_PacketSentContor;
 
 /**
  *
@@ -182,10 +185,10 @@ public class DharmawanDriver {
     /** StatsCollector Hook-up - to allow you to see a quick-stat including elapsed time, number of packet lost, and so on. Also used to perform run-time logging */
     StatsCollector statistics = new StatsCollector(myNode, length, 0, 30 * Constants.SECOND);
     statistics.monitor(new StatEntry_Time());
-    /*statistics.monitor(new StatEntry_PacketSentContor("DATA"));
+    statistics.monitor(new StatEntry_PacketSentContor("DATA"));
     statistics.monitor(new StatEntry_PacketReceivedContor("DATA"));
     statistics.monitor(new StatEntry_PacketReceivedPercentage("DATA"));
-    statistics.monitor(new StatEntry_PacketDeliveryLatency("DATA", StatEntry_PacketDeliveryLatency.MODE.MAX));*/
+    statistics.monitor(new StatEntry_PacketDeliveryLatency("DATA", StatEntry_PacketDeliveryLatency.MODE.MAX));
     statistics.monitor(new StatEntry_AliveNodesCount("NCA", 5));
     statistics.monitor(new StatEntry_DeadNodesCount("NCD", 5));
     StatEntry_GeneralPurposeContor createdCounter = new StatEntry_GeneralPurposeContor("AV_Created");
@@ -236,18 +239,19 @@ public class DharmawanDriver {
    /**
    * Configures each node representation and network stack
    *
-   * @param int id      a numerical value to represent the id of a node. Will correspond to the IP address representation
-   * @param Field       the field properties
-   * @param Placement   information regarding positions length of field
-   * @param Mapper      network stack mapper
-    *@param RadioInfo.RadioInfoShared   configuration of the radio
-    *@param plIn        property of the PacketLoss for incoming data packet
-    *@param plOut       property of the PacketLoss for outgoing data packet
-    *@param hostPanelContext    the context of the panel this node will be drawn
-    *@param fieldContext        the context of the actual field this node is in (for GPS)
-    *@param simControl          handle to the simulation manager
-    *@param Battery     indicate the battery that will power this particular node
-    *@param StatsCollector the statistical collector tool
+     * @param id    a numerical value to represent the id of a node. Will correspond to the IP address representation
+     * @param field the field properties
+     * @param placement information regarding positions length of field
+     * @param protMap   network stack mapper
+     * @param radioInfoShared   configuration of the radio
+     * @param plIn        property of the PacketLoss for incoming data packet
+     * @param stats
+     * @param plOut       property of the PacketLoss for outgoing data packet
+     * @param hostPanelContext    the context of the panel this node will be drawn
+     * @param fieldContext        the context of the actual field this node is in (for GPS)
+     * @param simControl          handle to the simulation manager
+     * @param topologyGUI
+     * @return 
    */
     public static Node createNode(int id,
                                   Field field,
@@ -289,7 +293,7 @@ public class DharmawanDriver {
     
      /* *** Configuring the ISO layers - more or less self-explanatory *** */
                 /* APP layer configuration */
-                AppSampleP2P app = new AppSampleP2P(node, Constants.NET_PROTOCOL_INDEX_1, stats);
+                AppLayer app = new AppLayer(node, Constants.NET_PROTOCOL_INDEX_1, stats);
                 
                 if (app.topologyGUI == null)
                     app.topologyGUI = topologyGUI;

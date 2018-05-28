@@ -1,1 +1,0 @@
-sidnet.models.deployment.models.manualplacement.ManualPlacement

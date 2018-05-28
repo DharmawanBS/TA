@@ -1,1 +1,0 @@
-sidnet.batch.SIDnetInstanceLauncher

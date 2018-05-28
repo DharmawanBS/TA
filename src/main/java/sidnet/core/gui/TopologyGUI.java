@@ -293,11 +293,11 @@ implements SIDnetDrawableInterface, SIDnetMenuInterface, SIDnetRegistrable{
         public synchronized void repaint(Graphics g) {  
             this.g = g;
             if (arrowSet != null) {
-                System.out.println("Panah false");
+                //System.out.println("Panah false");
                 for(Arrow arrow: arrowSet)
                      ArrowDrawingTool.drawArrow(g, arrow);
             }
-            else System.out.println("Panah true");
+            //else System.out.println("Panah true");
         }
         
         /** 

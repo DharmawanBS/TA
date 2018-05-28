@@ -26,6 +26,7 @@ import sidnet.core.gui.*;
 import jist.runtime.JistAPI;
 import jist.swans.app.AppInterface;
 import jist.swans.route.RouteInterface;
+import org.w3c.dom.NodeList;
 import sidnet.core.misc.Location2D;
 import sidnet.core.misc.Node;
 import sidnet.core.misc.NodesList;
@@ -108,9 +109,10 @@ public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
             netEntity.send(messageHeartbeat, NetAddress.ANY, Constants.NET_PROTOCOL_HEARTBEAT, Constants.NET_PRIORITY_NORMAL, (byte)100);  // TTL 100'
             return;
         }
+        
       
         if (!this.wakeAndBeatStarted || wakeAndBeatStarted)
-        {
+        {   
             wakeAndBeatStarted = true;
             JistAPI.sleepBlock(beatInterval);
             if (myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel() < 20)

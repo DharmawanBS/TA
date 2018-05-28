@@ -1,1 +1,0 @@
-sidnet.models.energy.batteries.PercentualTimeDrainingBattery

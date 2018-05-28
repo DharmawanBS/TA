@@ -1,3 +1,0 @@
-#!/bin/bash
-JIST_SRC=`dirname $0`/../src
-exec java -cp ${JIST_SRC}:${CLASSPATH} jist.runtime.ProxyGen $*

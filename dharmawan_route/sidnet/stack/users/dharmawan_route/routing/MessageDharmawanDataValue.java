@@ -14,37 +14,28 @@ import sidnet.core.misc.NCS_Location2D;
  * @author dharmawan
  */
 public class MessageDharmawanDataValue implements Message {
-
+    
     public String tipeSensor;
-
-    public double maxValue;
-    public double minValue;
-    public double averageValue;
-
-    public long totalValueAggregated;
 
     public int priorityLevel;
 
-    public boolean is_from_CH;
+    public int queryID;
 
-    public boolean is_from_group;
-
-    public int aggregatorNodeID;
-    public NCS_Location2D aggregatorNodeLocation;
+    public int fromRegion;
 
     public NetAddress sinkIP;
     public NCS_Location2D sinkLocation;
-
+    
     public MessageDharmawanDataValue() {
+        
     }
-
-    public int getSize() {
+    
+    /** {@inheritDoc} */
+    public int getSize() { 
         return 17;
     }
-
-    public void getBytes(byte[] msg, int offset) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    /** {@inheritDoc} */
+    public void getBytes(byte[] b, int offset) {
+        throw new RuntimeException("not implemented");
     }
-
 }
-

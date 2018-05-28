@@ -1,2 +1,0 @@
-sidnet.utilityviews.energymap.EnergyMap
-sidnet.utilityviews.energymap.EnergyMap$EnergyItem

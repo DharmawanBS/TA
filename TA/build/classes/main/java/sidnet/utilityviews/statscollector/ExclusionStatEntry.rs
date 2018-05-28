@@ -1,3 +1,0 @@
-sidnet.utilityviews.statscollector.ExclusionStatEntry$STATUS
-sidnet.utilityviews.statscollector.ExclusionStatEntry
-sidnet.utilityviews.statscollector.ExclusionStatEntry$TYPE

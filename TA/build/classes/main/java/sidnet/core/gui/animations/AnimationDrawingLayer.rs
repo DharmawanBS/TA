@@ -1,1 +1,0 @@
-sidnet.core.gui.animations.AnimationDrawingLayer

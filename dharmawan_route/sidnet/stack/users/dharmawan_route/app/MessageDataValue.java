@@ -16,32 +16,32 @@ import jist.swans.misc.Message;
  * @author Oliver
  */
 public class MessageDataValue implements Message {
-    public final double dataValue;
-    public final int groupId;
+public final double dataValue;
+    public final int queryId;
     public final long sequenceNumber;
     public int producerNodeId;
-    
+
     public String tipeSensor;
 
     public int fromRegion;
     
-    public int queryID;
-    
     public MessageDataValue(double dataValue) {
         this.dataValue = dataValue;
-        groupId        = -1;
+        queryId        = -1;
         sequenceNumber = -1;
     }
     
-    public MessageDataValue(double dataValue, int groupId, long sequenceNumber, int producerNodeId) {
+    public MessageDataValue(double dataValue, int queryId,
+    					  long sequenceNumber, int producerNodeId) {
         this.dataValue = dataValue;
-        this.groupId   = groupId;
+        this.queryId   = queryId;
         this.sequenceNumber = sequenceNumber;
         this.producerNodeId = producerNodeId;
     }
     
     /** {@inheritDoc} */
-    public int getSize() { 
+    public int getSize() 
+    { 
       int size = 0;
       size += 4; // double dataValue;
       size += 2; // double sequenceNumber;
@@ -51,7 +51,8 @@ public class MessageDataValue implements Message {
       return size;
     }
     /** {@inheritDoc} */
-    public void getBytes(byte[] b, int offset) {
+    public void getBytes(byte[] b, int offset)
+   {
       throw new RuntimeException("not implemented");
     }
   } // class: MessageP2P

@@ -1,2 +1,0 @@
-sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage$MODE
-sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage

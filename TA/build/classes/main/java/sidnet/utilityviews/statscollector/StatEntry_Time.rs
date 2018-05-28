@@ -1,2 +1,0 @@
-sidnet.utilityviews.statscollector.StatEntry_Time$TIMEBASE
-sidnet.utilityviews.statscollector.StatEntry_Time

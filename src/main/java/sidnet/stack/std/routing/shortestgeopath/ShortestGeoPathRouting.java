@@ -145,6 +145,8 @@ public class ShortestGeoPathRouting implements RouteInterface {
         
         if (targetLocation != null)	// TODO FIXME occasionally this turns to be null
         	handleWithTargetLocation(targetLocation, msg);
+        
+        
      }
      
      private void handleWithTargetLocation(Location2D targetLocation,
