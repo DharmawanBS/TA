@@ -45,13 +45,13 @@ import sidnet.models.senseable.phenomena.PhenomenaLayerInterface;
 import sidnet.stack.std.mac.ieee802_15_4.Mac802_15_4Impl;
 import sidnet.stack.std.mac.ieee802_15_4.Phy802_15_4Impl;
 import sidnet.stack.std.routing.heartbeat.HeartbeatProtocol;
-import sidnet.stack.users.dharmawan_route.app.AppLayer;
 import sidnet.utilityviews.energymap.EnergyMap;
 import sidnet.utilityviews.statscollector.StatEntry_GeneralPurposeContor;
 import sidnet.utilityviews.statscollector.StatEntry_Time;
 import sidnet.utilityviews.statscollector.StatsCollector;
 import sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage;
 
+import sidnet.stack.users.dharmawan_route.app.AppLayer;
 import sidnet.stack.users.dharmawan_route.colorprofile.ColorProfileDharmawan;
 import sidnet.stack.users.dharmawan_route.routing.RoutingProtocol;
 import sidnet.utilityviews.statscollector.StatEntry_PacketDeliveryLatency;
@@ -69,6 +69,7 @@ public class DharmawanDriver {
     
     /** Define the battery-type for the nodes 75mAh should give enough juice for 24-48h */
     public static Battery battery = new IdealBattery(BatteryUtils.mAhToMJ(75, 3), 3);
+    public static Battery battery_sink = new IdealBattery(BatteryUtils.mAhToMJ(9999999, 3), 3);
     
     /** Define the power-consumption characteristics of the nodes, based on Mica Mote MPR500CA */
     public static EnergyConsumptionParameters eCostParam = new EnergyConsumptionParameters(
@@ -135,7 +136,7 @@ public class DharmawanDriver {
       
     /** Launch the SIDnet main graphical interface and set-up the title */       
     SimGUI simGUI = new SimGUI();
-    simGUI.appendTitle("Dharmawan Routing");
+    simGUI.appendTitle("Dharmawan Routing III");
     
     /** Internal stuff: configure and start the simulation manager. Hook up control for GUI panels*/
     SimManager simManager = new SimManager(simGUI, null, SimManager.DEMO);
@@ -158,6 +159,12 @@ public class DharmawanDriver {
     /** Configure the radio environment properties */
     RadioInfo.RadioInfoShared radioInfoShared = RadioInfo.createShared(
         Constants.FREQUENCY_DEFAULT, 40000 /* BANDWIDTH bps - it will be overloaded when using 802_15_4  */,
+        -12 /* dBm for Mica Z */, Constants.GAIN_DEFAULT,
+        Util.fromDB(Constants.SENSITIVITY_DEFAULT), Util.fromDB(Constants.THRESHOLD_DEFAULT),
+        Constants.TEMPERATURE_DEFAULT, Constants.TEMPERATURE_FACTOR_DEFAULT, Constants.AMBIENT_NOISE_DEFAULT);
+    
+    RadioInfo.RadioInfoShared radioInfoShared_sink = RadioInfo.createShared(
+        Constants.FREQUENCY_DEFAULT, 80000 /* BANDWIDTH bps - it will be overloaded when using 802_15_4  */,
         -12 /* dBm for Mica Z */, Constants.GAIN_DEFAULT,
         Util.fromDB(Constants.SENSITIVITY_DEFAULT), Util.fromDB(Constants.THRESHOLD_DEFAULT),
         Constants.TEMPERATURE_DEFAULT, Constants.TEMPERATURE_FACTOR_DEFAULT, Constants.AMBIENT_NOISE_DEFAULT);
@@ -185,10 +192,10 @@ public class DharmawanDriver {
     /** StatsCollector Hook-up - to allow you to see a quick-stat including elapsed time, number of packet lost, and so on. Also used to perform run-time logging */
     StatsCollector statistics = new StatsCollector(myNode, length, 0, 30 * Constants.SECOND);
     statistics.monitor(new StatEntry_Time());
-    statistics.monitor(new StatEntry_PacketSentContor("DATA"));
-    statistics.monitor(new StatEntry_PacketReceivedContor("DATA"));
-    statistics.monitor(new StatEntry_PacketReceivedPercentage("DATA"));
-    statistics.monitor(new StatEntry_PacketDeliveryLatency("DATA", StatEntry_PacketDeliveryLatency.MODE.MAX));
+    //statistics.monitor(new StatEntry_PacketSentContor("DATA"));
+    //statistics.monitor(new StatEntry_PacketReceivedContor("DATA"));
+    //statistics.monitor(new StatEntry_PacketReceivedPercentage("DATA"));
+    //statistics.monitor(new StatEntry_PacketDeliveryLatency("DATA", StatEntry_PacketDeliveryLatency.MODE.MAX));
     statistics.monitor(new StatEntry_AliveNodesCount("NCA", 5));
     statistics.monitor(new StatEntry_DeadNodesCount("NCD", 5));
     StatEntry_GeneralPurposeContor createdCounter = new StatEntry_GeneralPurposeContor("AV_Created");
@@ -201,8 +208,22 @@ public class DharmawanDriver {
     statistics.monitor(new StatEntry_EnergyLeftPercentage("ALL-NODES", StatEntry_EnergyLeftPercentage.MODE.AVG));
     
     /** Create the sensor nodes (each at a time). Initialize each node's data and network stack */
-    for(int i=0; i<nodes; i++)
-       myNode[i] = createNode(i, field, placement, protMap, radioInfoShared, pl, pl, simGUI.getSensorsPanelContext(), fieldContext, simManager, statistics, topologyGUI);   
+    Battery battery_now;
+    RadioInfo.RadioInfoShared radioInfoShared_now;
+    boolean is_sink;
+    for(int i=0; i<nodes; i++) {
+        if (i == 0) {
+            battery_now = battery_sink;
+            radioInfoShared_now = radioInfoShared_sink;
+        }
+        else {
+            battery_now = battery;
+            radioInfoShared_now = radioInfoShared;
+        }
+        myNode[i] = createNode(i, field, placement, protMap, radioInfoShared, pl, pl, simGUI.getSensorsPanelContext(), fieldContext, simManager, statistics, topologyGUI,battery_now,radioInfoShared_now);
+    }
+    myNode[0].getNodeGUI().colorCode.mark(new ColorProfileDharmawan(),ColorProfileDharmawan.SINK, ColorProfileDharmawan.FOREVER);
+    myNode[0].is_sink = true;
     
     simManager.registerAndRun(statistics, simGUI.getUtilityPanelContext2()); // Indicate where do you want this to show up on the GUI
     simManager.registerAndRun(topologyGUI, simGUI.getSensorsPanelContext());
@@ -264,13 +285,15 @@ public class DharmawanDriver {
                                   LocationContext fieldContext,
                                   SimManager simControl,
                                   StatsCollector stats,
-                                  TopologyGUI topologyGUI)
+                                  TopologyGUI topologyGUI,
+                                  Battery battery_now,
+                                  RadioInfo.RadioInfoShared radioInfoShared_now)
   {
     /** create entities (gives a physical location) */
     Location nextLocation = placement.getNextLocation(); 
         
     /** Create an individual battery, since no two nodes can be powered by the same battery. The specs of the battery are the same though */
-    Battery individualBattery = new IdealBattery(battery.getCapacity_mJ(), battery.getVoltage());
+    Battery individualBattery = new IdealBattery(battery_now.getCapacity_mJ(), battery_now.getVoltage());;
 
     /** Set the battery and the energy consumption profile */
     EnergyConsumptionModel energyConsumptionModel = new EnergyConsumptionModelImpl(eCostParam, individualBattery);
@@ -308,6 +331,8 @@ public class DharmawanDriver {
                 							hostPanelContext,
                 							30 * Constants.MINUTE);
                 
+                if(heartbeatProtocol.topologyGUI == null) heartbeatProtocol.topologyGUI = topologyGUI;
+                
                 //ShortestGeoPathRouting shortestGeographicalPathRouting = new ShortestGeoPathRouting(node);
                 
                 RoutingProtocol routingProtocol = new RoutingProtocol(node);
@@ -317,10 +342,10 @@ public class DharmawanDriver {
                 node.setIP(net.getAddress());
 
                 /* MAC layer configuration */
-                Mac802_15_4Impl mac = new Mac802_15_4Impl(new MacAddress(id), radioInfoShared, node.getEnergyManagement(), node);
+                Mac802_15_4Impl mac = new Mac802_15_4Impl(new MacAddress(id), radioInfoShared_now, node.getEnergyManagement(), node);
 
                 /* PHY layer configuration */
-                Phy802_15_4Impl phy = new Phy802_15_4Impl(id, radioInfoShared, energyManagementUnit, node, 0 * Constants.SECOND);
+                Phy802_15_4Impl phy = new Phy802_15_4Impl(id, radioInfoShared_now, energyManagementUnit, node, 0 * Constants.SECOND);
                 
                 /* RADIO "layer configuration */
                 field.addRadio(phy.getRadioInfo(), phy.getProxy(), nextLocation);

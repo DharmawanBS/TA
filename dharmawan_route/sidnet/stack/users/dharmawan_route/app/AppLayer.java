@@ -24,7 +24,7 @@ import sidnet.core.query.Query;
 import sidnet.core.simcontrol.SimManager;
 import sidnet.stack.std.routing.heartbeat.MessageHeartbeat;
 import sidnet.stack.std.routing.shortestgeopath.SGPWrapperMessage;
-import sidnet.stack.users.dharmawan_route.routing.MessageDharmawanDataValue;
+import sidnet.stack.users.dharmawan_route.routing.MessagePoolDataValue;
 import sidnet.stack.users.dharmawan_route.routing.ProtocolMessageWrapper;
 import sidnet.utilityviews.statscollector.StatEntry_EnergyLeftPercentage;
 import sidnet.utilityviews.statscollector.StatsCollector;
@@ -159,27 +159,24 @@ public class AppLayer implements AppInterface, CallbackInterface {
         
            double sensedValue = myNode.readAnalogSensorData(0);
            
-           myNode.getNodeGUI().colorCode.mark(colorProfileGeneric,
-        		   							  ColorProfileGeneric.SENSE, 5);           
+           myNode.getNodeGUI().colorCode.mark(colorProfileGeneric,ColorProfileGeneric.SENSE, 5);
            
-           MessageDataValue msgDataValue = new MessageDataValue(sensedValue,
-        		   										  		queryId,
-        		   										  		sequenceNumber,
-        		   										  		myNode.getID());
+           MessageDataValue msgDataValue = new MessageDataValue(sensedValue,queryId,sequenceNumber,myNode.getID());
            
-           stats.incrementValue("AV_Created", 1);
            
            //stats.markPacketSent("DATA", sequenceNumber);
            
-           // wrap the MessageQuery as a SGP message
-           ProtocolMessageWrapper msgSGP 
+           //Wrap pesan ke protokol pengiriman
+           ProtocolMessageWrapper msgValue 
            	= new ProtocolMessageWrapper(msgDataValue, sinkLocation,
            							0, JistAPI.getTime());
            
-           netEntity.send(msgSGP, 
+           netEntity.send(msgValue, 
         		   		  sinkAddress,
         		   		  routingProtocolIndex,
         		   		  Constants.NET_PRIORITY_NORMAL, (byte)40); 
+           
+           stats.incrementValue("AV_Created", 1);
            
            myNode.getNodeGUI().colorCode.mark(colorProfileGeneric,
         		   							  ColorProfileGeneric.TRANSMIT, 5);
@@ -261,6 +258,8 @@ public class AppLayer implements AppInterface, CallbackInterface {
         if (myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel() < 5)
             return;
         
+        //stats.incrementValue("AV_Received", 1);
+        
         if (msg instanceof MessageQuery) { /* This is a source node. It receives the query request, and not it prepares to do the periodic sensing/sampling */
              MessageQuery msgQuery = (MessageQuery)msg;
              //System.out.println("Node " + myNode.getID() + " got query, processing query " + msgQuery.getQuery().getID());
@@ -287,15 +286,13 @@ public class AppLayer implements AppInterface, CallbackInterface {
                 }
              }
              
-             if (msg instanceof MessageDharmawanDataValue) {
-                MessageDharmawanDataValue xmsg = (MessageDharmawanDataValue) msg;
+             if (msg instanceof MessagePoolDataValue) {
+                /*MessagePoolDataValue xmsg = (MessagePoolDataValue) msg;
                 int minute = new Long(JistAPI.getTime() / Constants.MINUTE).intValue();
                 int hour = minute / 60;
                 minute = minute - (hour * 60);
                 int second = new Long(JistAPI.getTime() / Constants.SECOND).intValue();
-                second = second - ((minute * 60) + (hour * 3600));
-
-                //stats.incrementValue("AV_Received", xmsg.totalValueAggregated);
+                second = second - ((minute * 60) + (hour * 3600));*/
 
                 stats.updateCommonStats();
              }

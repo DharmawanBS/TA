@@ -7,6 +7,7 @@ package sidnet.stack.users.dharmawan_route.routing;
 
 import java.util.ArrayList;
 import jist.swans.net.NetAddress;
+import sidnet.core.misc.NCS_Location2D;
 /**
  *
  * @author invictus
@@ -17,16 +18,18 @@ public class NodeEntryDiscovery {
     public NetAddress ipAddress;
     public int totalDiscoveredNode;
     public double energyLeft;
+    public NCS_Location2D position;
 
     public double myPoint;
 
     public ArrayList<Integer> queryProcessed = new ArrayList<Integer>();
 
-    public NodeEntryDiscovery(int nodeID, NetAddress ipAddress, int totalDiscoveredNode, double energyLeft) {
+    public NodeEntryDiscovery(int nodeID, NetAddress ipAddress, int totalDiscoveredNode, double energyLeft, NCS_Location2D position) {
         this.nodeID = nodeID;
         this.ipAddress = ipAddress;
         this.totalDiscoveredNode = totalDiscoveredNode;
         this.energyLeft = energyLeft;
+        this.position = position;
         this.myPoint = 0;
     }
 

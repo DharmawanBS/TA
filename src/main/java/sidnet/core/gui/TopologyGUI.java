@@ -14,6 +14,7 @@ package sidnet.core.gui;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Shape;
 import java.util.LinkedList;
 import javax.swing.JPanel;
 import sidnet.core.misc.*;
@@ -21,9 +22,14 @@ import sidnet.core.interfaces.SIDnetDrawableInterface;
 import sidnet.core.interfaces.SIDnetMenuInterface;
 import sidnet.core.interfaces.SIDnetRegistrable;
 import java.awt.event.ActionEvent;
+import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.HashMap;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import jist.swans.net.NetAddress;
+import sidnet.stack.users.dharmawan_route.routing.Konstanta;
 
 /**
  * Helper class, designed to integrate with SIDnet simulator,
@@ -72,7 +78,22 @@ implements SIDnetDrawableInterface, SIDnetMenuInterface, SIDnetRegistrable{
     
     public void setNodeList(Node[] nodeList) {
         this.nodeList = nodeList;
+        
+        //set_cakupan_node(nodeList);
     }
+    
+    /*private void set_cakupan_node(Node[] nodeList) {
+        for(int i=0;i<nodeList.length;i++) {
+            for(int j=i+1;j<nodeList.length;j++) {
+                nodeList[i].cakupan_node = new HashMap<NetAddress, Location2D>();
+                
+                if (nodeList[i].getLocation2D().distanceTo(nodeList[j].getLocation2D()) <= Konstanta.RADIUS) {
+                    nodeList[i].cakupan_node.put(nodeList[j].getIP(), nodeList[j].getLocation2D());
+                    nodeList[j].cakupan_node.put(nodeList[i].getIP(), nodeList[i].getLocation2D());
+                }
+            }
+        }
+    }*/
     
     /** 
      * Adds a link to the topology viewer 
@@ -242,6 +263,7 @@ implements SIDnetDrawableInterface, SIDnetMenuInterface, SIDnetRegistrable{
            
              for (TopologyGroup topologyGroup:topologyGroupList)
                   topologyGroup.repaint(image.getGraphics());
+             
              g2.dispose();
        }
        if (image != null)

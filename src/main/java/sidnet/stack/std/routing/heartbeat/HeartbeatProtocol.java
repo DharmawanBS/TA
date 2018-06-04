@@ -58,6 +58,8 @@ public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
     
     private long beatInterval;
     
+    public static TopologyGUI topologyGUI = null;
+    
     /** Creates a new instance of HeartbeatProtocol */
     public HeartbeatProtocol(NetAddress localAddr, Node myNode, PanelContext hostPanelContext, long beatInterval) {
         this.localAddr = localAddr;
@@ -107,10 +109,13 @@ public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
             myNode.getNodeGUI().colorCode.mark(new ColorProfileGeneric(), ColorProfileGeneric.TRANSMIT, 200);
             JistAPI.sleepBlock(Constants.random.nextInt(100) * 100 * Constants.MILLI_SECOND); 
             netEntity.send(messageHeartbeat, NetAddress.ANY, Constants.NET_PROTOCOL_HEARTBEAT, Constants.NET_PRIORITY_NORMAL, (byte)100);  // TTL 100'
+            
             return;
         }
         
-      
+        topologyGUI.removeGroup(0);
+        topologyGUI.removeGroup(1);
+        
         if (!this.wakeAndBeatStarted || wakeAndBeatStarted)
         {   
             wakeAndBeatStarted = true;
@@ -118,7 +123,7 @@ public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
             if (myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel() < 20)
                 beatInterval = 5 * Constants.MINUTE;
             ((RouteInterface.HeartbeatProtocol)self).wakeAndBeat(beatInterval, true);
-        }         
+        }
     }
      
     /* Receive a message from the network layer */
@@ -150,7 +155,7 @@ public class HeartbeatProtocol implements RouteInterface.HeartbeatProtocol{
         else
             if (!myNode.neighboursList.contains(lastHop))
                 myNode.neighboursList.add(src, newEntry);
-        myNode.getNodeGUI().colorCode.mark(new ColorProfileGeneric(), ColorProfileGeneric.RECEIVE, 200);  
+        myNode.getNodeGUI().colorCode.mark(new ColorProfileGeneric(), ColorProfileGeneric.RECEIVE, 200);
         if (!wakeAndBeatStarted)
             wakeAndBeat(beatInterval, wakeAndBeatStarted);
     }

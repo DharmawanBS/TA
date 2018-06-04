@@ -24,6 +24,7 @@ import jist.swans.net.NetMessage;
 import jist.swans.route.RouteInterface;
 import sidnet.colorprofiles.ColorProfileGeneric;
 import sidnet.core.gui.TopologyGUI;
+import sidnet.core.misc.Location2D;
 import sidnet.core.misc.NCS_Location2D;
 import sidnet.stack.users.dharmawan_route.colorprofile.ColorProfileDharmawan;
 import sidnet.core.misc.Node;
@@ -37,13 +38,14 @@ import sidnet.stack.users.dharmawan_route.app.MessageQuery;
  * @author dharmawan
  */
 public class RoutingProtocol implements RouteInterface.DharmawanRoute {
+    
     public static final byte ERROR = -1;
     public static final byte SUCCESS = 0;
 
-    private static final long INTERVAL_TIMING_SEND = 5 * Constants.SECOND;
+    public static final long INTERVAL_TIMING_SEND = 5 * Constants.SECOND;
     
-    private static final int LIMIT_PACKET_ID_SIZE = 500;
-
+    public static final int LIMIT_PACKET_ID_SIZE = 500;
+    
     private final Node myNode; // The SIDnet handle to the node representation 
     
     private boolean netQueueFULL = false;
@@ -136,6 +138,9 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
     private Map<String, poolReceivedItem> rcvPool = new HashMap<String, poolReceivedItem>();
     private ArrayList<poolReceivedItem> lstItemPool = new ArrayList<poolReceivedItem>();
     
+    private NCS_Location2D sink_loc = null;
+    private NetAddress sink_ip = null;
+    
     /** Creates a new instance
      *
      * @param Node    the SIDnet node handle to access 
@@ -170,7 +175,7 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
             }
 
             for (poolReceivedItem pri : lstItemPool) {
-                MessageDharmawanDataValue mddv = new MessageDharmawanDataValue();
+                MessagePoolDataValue mddv = new MessagePoolDataValue();
                 mddv.fromRegion = pri.fromRegion;
                 mddv.queryID = pri.queryID;
                 mddv.tipeSensor = pri.tipeSensor;
@@ -268,23 +273,28 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
                 handleMessageQuery(sndMsg);
             }
         }
-        else if (sndMsg.getPayload() instanceof MessageDharmawanDataValue) {
+        else if (sndMsg.getPayload() instanceof MessagePoolDataValue) {
             //tipe pesan aggregate diteruskan ke fungsi handleMessageAggregatedDataValue
             //if (!receivedDataId.contains(String.valueOf(sndMsg.getS_seq()))) {
             //    receivedDataId.add(String.valueOf(sndMsg.getS_seq()));
             //    memoryControllerPacketID();
                 //System.out.println("boom");
-                handleMessageDharmawan(msg);
+                handleMessagePool(msg);
             //}
         }
     }
     
-    private void handleMessageDharmawan(NetMessage msg) {
+    private void handleMessagePool(NetMessage msg) {
         //Extract pesan ketipe wrapper
         ProtocolMessageWrapper sndMsg = (ProtocolMessageWrapper)((NetMessage.Ip)msg).getPayload();
 
         //extract ke tipe madv
-        MessageDharmawanDataValue madv = (MessageDharmawanDataValue)sndMsg.getPayload();
+        MessagePoolDataValue madv = (MessagePoolDataValue)sndMsg.getPayload();
+        
+        sink_loc = madv.sinkLocation;
+        sink_ip = madv.sinkIP;
+        
+        //System.out.println("sink "+sink_ip);
 
         if (queryProcessed.contains(madv.queryID)) {
             //pesan diterima oleh node yang mengerjakan query yang sama
@@ -323,7 +333,7 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
                 DestinationSink ds = new DestinationSink(query.getQuery().getSinkIP(), query.getQuery().getSinkNCSLocation2D(), query.getQuery().getRegion().getID());
                 this.detailQueryProcessed.put(query.getQuery().getID(), ds);
 
-                MessageNodeDiscover mnd = new MessageNodeDiscover(myNode.getID(), myNode.getIP(), myNode.neighboursList.size(), myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel());                
+                MessageNodeDiscover mnd = new MessageNodeDiscover(myNode.getID(), myNode.getIP(), myNode.neighboursList.size(), myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel(),myNode.getNCS_Location2D());
                 mnd.addQueryProcessed(this.queryProcessed);
 
                 ProtocolMessageWrapper pmw = new ProtocolMessageWrapper(mnd);
@@ -347,32 +357,38 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
     
     private void handleMessageDataValue(MessageDataValue msg) {
 
-        //cari cluster head
-        //NetAddress myClusterHead = myNode.current_CH;
+        if (msg.producerNodeId == myNode.getID()) {
+            //tambahkan informasi region
+            msg.fromRegion = detailQueryProcessed.get(msg.queryId).regionProcessed;
+
+            //cari cluster head
+            NetAddress myClusterHead = getMyClusterHead(msg.queryId);
         
-        //cari cluster head
-        NetAddress myClusterHead = getMyClusterHead();
-        
-        //jika cluster headnya diri sendiri
-        if (myClusterHead.hashCode() == myNode.getIP().hashCode()) {
-            //cluster headnya diri sendiri, cari tujuan lain
-            System.out.println("CH diri sendiri");
+            //jika cluster headnya diri sendiri
+            if (myClusterHead.hashCode() == myNode.getIP().hashCode()) {
+                //cluster headnya diri sendiri, pool
+                System.out.println("CH diri sendiri");
+                myNode.current_CH = myNode.getIP();
+                poolHandleMessageDataValue(msg);
+            }
+            //jika tidak maka kirim ke cluster head
+            else {
+                //System.out.println("Node " + myNode.getID() + " mengirim data ke clusterhead " + myClusterHead);
+                //System.out.println("CH "+ myClusterHead.toString());
+                myNode.current_CH = myClusterHead;
+                ProtocolMessageWrapper pmw = new ProtocolMessageWrapper(msg);
+                String unikID = String.valueOf(myNode.getID()) + String.valueOf(JistAPI.getTime());
+                pmw.setS_seq(Long.valueOf(unikID));
+                NetMessage.Ip nmip = new NetMessage.Ip(pmw, myNode.getIP(), detailQueryProcessed.get(msg.queryId).sinkIP, Constants.NET_PROTOCOL_INDEX_1, Constants.NET_PRIORITY_NORMAL, (byte)100);
+                sendToLinkLayer(nmip, myClusterHead);
+            }
+        }
+        else {
+            // pool
+            topologyGUI.addLink(msg.producerNodeId, myNode.getID(), 0, Color.BLACK, TopologyGUI.HeadType.LEAD_ARROW);
+            myNode.getNodeGUI().colorCode.mark(colorProfile, ColorProfileDharmawan.CLUSTERHEAD, 5000);
             
             poolHandleMessageDataValue(msg);
-        }
-        //jika tidak maka kirim ke cluster head
-        else {
-            //System.out.println("Node " + myNode.getID() + " mengirim data ke clusterhead " + myClusterHead);
-            System.out.println("CH "+ myClusterHead.toString());
-            
-            ProtocolMessageWrapper pmw = new ProtocolMessageWrapper(msg);
-            String unikID = String.valueOf(myNode.getID()) + String.valueOf(JistAPI.getTime());
-            pmw.setS_seq(Long.valueOf(unikID));
-            NetMessage.Ip nmip = new NetMessage.Ip(pmw, myNode.getIP(), detailQueryProcessed.get(msg.queryId).sinkIP, Constants.NET_PROTOCOL_INDEX_1, Constants.NET_PRIORITY_NORMAL, (byte)100);
-            sendToLinkLayer(nmip, myClusterHead);
-        
-            //  teruskan pesan ke cluster head
-            topologyGUI.addLink(msg.producerNodeId, myNode.getID(), 0, Color.BLACK, TopologyGUI.HeadType.LEAD_ARROW);
         }
     }
     
@@ -417,7 +433,7 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         }
     }
     
-    private NetAddress getMyClusterHead() {
+    private NetAddress getMyClusterHead(int queryId) {
         
         List<NetAddress> lstNetAddr = new ArrayList<NetAddress>();
 
@@ -425,10 +441,14 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         //banyak tetangga
         int maxDiscoveredNode = myNode.neighboursList.size();
         double energy = myNode.getEnergyManagement().getBattery().getPercentageEnergyLevel();
-        //double point = maxDiscoveredNode/200 + energy/100;
-        double point = maxDiscoveredNode/200;
+        double point = maxDiscoveredNode/200 + energy/100;
+        double distance = 0;
+        if (sink_loc != null) {
+            distance = myNode.getNCS_Location2D().distanceTo(sink_loc);
+        }
+        
+        //double point = maxDiscoveredNode/200;
         NetAddress selectedClusterHead = myNode.getIP();
-        //System.out.println("ululululu\n"+myNode.getIP()+" "+myNode.getID()+" "+maxDiscoveredNode+" "+energy);
 
         //ambil list tetangga yang dibuat oleh heartbeat
         LinkedList<NodeEntry> neighboursLinkedList = myNode.neighboursList.getAsLinkedList();
@@ -437,7 +457,8 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         //jika ada yang sama kumpulkan di ListNetAddress
         for(NodeEntry nodeEntry: neighboursLinkedList) {
             if (listTetangga.containsKey(nodeEntry.ip))
-                lstNetAddr.add(nodeEntry.ip);
+                    if (listTetangga.get(nodeEntry.ip).queryProcessed.contains(queryId))
+                        lstNetAddr.add(nodeEntry.ip);
         }
 
         //cari tetangga yang memiliki tetangga paling banyak
@@ -445,15 +466,21 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
             for (NetAddress na: lstNetAddr) {;
                 int tmp_tetangga = listTetangga.get(na).totalDiscoveredNode;
                 double tmp_baterry = listTetangga.get(na).energyLeft;
-                //double tmp_point = tmp_tetangga/200 + tmp_baterry/100;
-                //System.out.println(na.toString()+" 0 "+maxDiscoveredNode+" "+energy);
-                double tmp_point = tmp_tetangga/200;
-                if (tmp_point > point) {
+                double tmp_point = tmp_tetangga/200 + tmp_baterry/100;
+        
+                double tmp_distance = 0;
+                if (sink_loc != null) {
+                    tmp_distance = listTetangga.get(na).position.distanceTo(sink_loc);
+                }
+                //System.out.println("jarak "+distance+" "+tmp_distance);
+                
+                //double tmp_point = tmp_tetangga/200;
+                if (tmp_point > point && tmp_distance <= distance) {
                     selectedClusterHead = na;
                     point = tmp_point;
                 }
             }
-        System.out.println(selectedClusterHead.toString());
+        System.out.println(myNode.getIP()+" CH : "+selectedClusterHead.toString());
         return selectedClusterHead;
     }
 
@@ -483,7 +510,7 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
         //Operasi sesuai dengan tipe pesan
         if (rcvMsg.getPayload() instanceof MessageNodeDiscover) {
             //tipe pesan discovery, berikan ke fungsi handle MessageNodeDiscover
-            System.out.println("receive discover Node " + myNode.getID() + " got node info from Node " + ((MessageNodeDiscover)rcvMsg.getPayload()).nodeID);
+            System.out.println("receive discover Node " + myNode.getID() + " got from Node " + ((MessageNodeDiscover)rcvMsg.getPayload()).nodeID);
             handleMessageNodeDiscover((MessageNodeDiscover)rcvMsg.getPayload());
         }
         else if (rcvMsg.getPayload() instanceof MessageQuery) {
@@ -494,27 +521,28 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
                 receivedDataId.add(String.valueOf(rcvMsg.getS_seq()));
                 memoryControllerPacketID();
                 handleMessageQuery(rcvMsg);
+                System.out.println("receive query Node " + myNode.getID());
             }
             //System.out.println("receive query");
         }
-        else if (rcvMsg.getPayload() instanceof MessageDharmawanDataValue) {
-            //jika pesan aggregate duplicate, abaikan
+        else if (rcvMsg.getPayload() instanceof MessagePoolDataValue) {
+            //jika pesan duplicate, abaikan
             if (this.receivedDataId.contains(String.valueOf(rcvMsg.getS_seq())))
                 return;
             receivedDataId.add(String.valueOf(rcvMsg.getS_seq()));
             memoryControllerPacketID();
 
-            //tipe pesan data value yang sudah diaggregate
             //bagian ini biasanya dipanggil jika pesan ini diterima pada sink node
             //lempar ke layer app
             //sendToAppLayer(rcvMsg.getPayload(), src);
             
-            sendToAppLayer((MessageDharmawanDataValue)rcvMsg.getPayload(), null);
+            sendToAppLayer((MessagePoolDataValue)rcvMsg.getPayload(), null);
+            System.out.println("receive pool Node " + myNode.getID());
         }
     }
     
     private void handleMessageNodeDiscover(MessageNodeDiscover msg) {
-        NodeEntryDiscovery ned = new NodeEntryDiscovery(msg.nodeID, msg.ipAddress, msg.totalDiscoveredNode, msg.energyLeft);
+        NodeEntryDiscovery ned = new NodeEntryDiscovery(msg.nodeID, msg.ipAddress, msg.totalDiscoveredNode, msg.energyLeft, msg.position);
         ned.addQueryProcessed(msg.queryProcessed);
         listTetangga.put(msg.ipAddress, ned);
     }
@@ -602,20 +630,20 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
                  System.err.println("Node #" + myNode.getID() + ": Destination IP (" + nextHopDestIP + ") not in my neighborhood. Please re-route! Are you sending the packet to yourself?");
                  System.err.println("Node #" + myNode.getID() + "has + " + myNode.neighboursList.size() + " neighbors");
                  new Exception().printStackTrace();
-                 return ERROR; 
+                 return this.ERROR; 
             }
             MacAddress macAddress = nodeEntry.mac;
             if (macAddress == null)
             {
                  System.err.println("Node #" + myNode.getID() + ": Destination IP (" + nextHopDestIP + ") not in my neighborhood. Please re-route! Are you sending the packet to yourself?");
                  System.err.println("Node #" + myNode.getID() + "has + " + myNode.neighboursList.size() + " neighbors");
-                 return ERROR;
+                 return this.ERROR;
             }
             myNode.getNodeGUI().colorCode.mark(colorProfile, ColorProfileDharmawan.TRANSMIT, 2);
             netEntity.send(ipMsg, Constants.NET_INTERFACE_DEFAULT, macAddress);
         }
         
-        return SUCCESS;
+        return this.SUCCESS;
     }
     
     public RouteInterface getProxy()
@@ -624,7 +652,7 @@ public class RoutingProtocol implements RouteInterface.DharmawanRoute {
     }
     
     private void memoryControllerPacketID() {
-        if (this.receivedDataId.size() >= LIMIT_PACKET_ID_SIZE) {
+        if (this.receivedDataId.size() >= this.LIMIT_PACKET_ID_SIZE) {
             this.receivedDataId.remove(0);
         }
     }

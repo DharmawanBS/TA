@@ -80,6 +80,9 @@ public class Node implements NodeAPI, NodeHardwareInterface{
     private boolean faulty = false;
     
     public NetAddress current_CH;
+    public HashMap<NetAddress, Location2D> cakupan_node;
+    
+    public boolean is_sink;
     
     /** Creates a new instance of Node */
     public Node(int id, EnergyManagement energyManagement, PanelContext hostingPanelContext, LocationContext fieldContext, ColorProfile colorCode, SimManager simControl){
@@ -98,6 +101,7 @@ public class Node implements NodeAPI, NodeHardwareInterface{
         physicalNeighboursList = new NodesList();
         
         current_CH = this.getIP();
+        cakupan_node = new HashMap<NetAddress, Location2D>();
     }
     
     

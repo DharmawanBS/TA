@@ -10,6 +10,7 @@ import java.util.Iterator;
 import jist.swans.mac.MacAddress;
 import jist.swans.misc.Message;
 import jist.swans.net.NetAddress;
+import sidnet.core.misc.NCS_Location2D;
 
 /**
  *
@@ -20,16 +21,18 @@ public class MessageNodeDiscover implements Message {
     public NetAddress ipAddress;
     public int totalDiscoveredNode;
     public double energyLeft;
+    public NCS_Location2D position;
 
     public double myPoint;
 
     public ArrayList<Integer> queryProcessed = new ArrayList<Integer>();
     
-    public MessageNodeDiscover(int nodeID, NetAddress ipAddress, int totalDiscoveredNode, double energyLeft) {
+    public MessageNodeDiscover(int nodeID, NetAddress ipAddress, int totalDiscoveredNode, double energyLeft, NCS_Location2D position) {
         this.nodeID = nodeID;
         this.ipAddress = ipAddress;
         this.totalDiscoveredNode = totalDiscoveredNode;
         this.energyLeft = energyLeft;
+        this.position = position;
         this.myPoint = 0;
     }
 
@@ -49,7 +52,7 @@ public class MessageNodeDiscover implements Message {
     }
 
     public int getSize() {
-        return (5 + (this.queryProcessed.size()));
+        return (6 + (this.queryProcessed.size()));
     }
 
     public void getBytes(byte[] msg, int offset) {
