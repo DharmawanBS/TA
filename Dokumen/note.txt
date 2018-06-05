@@ -1,0 +1,25 @@
+[u1] Mehta, B. & Reddy, Y. J., 2015. Wireless communication. In: Industrial Process
+Automation Systems . Oxford: Elsevier’s Science & Technology, pp.
+417-457.
+
+Barr, R., 2004. SWANS– Scalable Wireless Ad hoc Network Simulator User 
+Guide. [Online] 
+Available at: http://jist.ece.cornell.edu/docs/040319-swans-user.pdf
+[Accessed 4 Januari 2013]. 
+
+<batal> Younis, O., Krunz, M. & Ramasubramanian, S., 2006. Node Clustering in
+Wireless Sensor Networks: Recent Developments and Deployment
+Challenges. IEEE Network, 20(3), pp. 20-25. 
+
+Ghica, C. O. et al., 2008. SIDnet-SWANS Manual, Evanston: Northwestern
+University, Inc. 
+
+Enhancement of Lifetime using Duty Cycle and
+Network Coding in Wireless Sensor Networks
+
+tambahin :
+1. clustering pada jaringan nirkabel
+2. java in simulation time (jist)
+3. scalable wireless ad hoc network simulator (swans)
+4. simulator and integrated development platform for sensor network applications
+di bab 2
